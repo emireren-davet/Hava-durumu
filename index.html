@@ -13,72 +13,126 @@
         body {
             background-color: #f8f9fa;
             font-family: Arial, sans-serif;
-        }
-        .weather-container {
-            max-width: 800px;
-            margin: 50px auto;
             padding: 20px;
         }
-        .search-history {
-            margin-top: 20px;
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
         }
-        .weather-card {
-            background-color: white;
+        .search-container {
+            background: white;
+            padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            padding: 20px;
-            margin-top: 20px;
-        }
-        .search-box {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             margin-bottom: 20px;
         }
-        .error-message {
-            color: red;
+        .weather-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .weather-icon {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+        .temperature {
+            font-size: 48px;
+            color: #0d6efd;
+            font-weight: bold;
+        }
+        .weather-details {
+            margin-top: 15px;
+        }
+        .history-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .history-card .temperature {
+            font-size: 24px;
+        }
+        .search-button {
+            background-color: #0d6efd;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .search-button:hover {
+            background-color: #0b5ed7;
+        }
+        .location-icon {
+            margin-right: 8px;
+        }
+        .weather-info {
+            display: flex;
+            align-items: center;
+        }
+        .detail-item {
+            margin-bottom: 8px;
+        }
+        .last-update {
+            color: #6c757d;
+            font-size: 0.9em;
             margin-top: 10px;
-            display: none;
         }
     </style>
 </head>
 <body>
-    <div class="container weather-container">
+    <div class="container">
         <h1 class="text-center mb-4">HAVA DURUMU</h1>
         
-        <div class="search-box">
-            <form onsubmit="getWeather(); return false;">
+        <div class="search-container">
+            <form onsubmit="getWeather(); return false;" class="d-flex">
                 <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="bi bi-search"></i>
+                    </span>
                     <input type="text" id="cityInput" class="form-control" placeholder="Şehir adı giriniz...">
                     <button class="btn btn-primary" type="submit">
-                        <i class="bi bi-search"></i> Ara
+                        Hava Durumunu Göster
                     </button>
                 </div>
             </form>
-            <div id="errorMessage" class="error-message text-center"></div>
         </div>
 
         <div id="weatherInfo" class="weather-card" style="display: none;">
             <!-- Weather information will be displayed here -->
         </div>
 
-        <div class="search-history">
-            <h3>Son Aramalar</h3>
-            <ul id="searchHistory" class="list-group">
+        <div class="mt-4">
+            <h5 class="mb-3">
+                <i class="bi bi-clock-history"></i>
+                Son Aramalar
+            </h5>
+            <div id="searchHistory">
                 <!-- Search history will be displayed here -->
-            </ul>
+            </div>
         </div>
     </div>
 
     <script>
-        // Version 2 - Updated API Key
         const API_KEY = '5abec0ec82d9ebef56322dcdf2a2f825';
         const MAX_HISTORY = 3;
 
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-            setTimeout(() => {
-                errorDiv.style.display = 'none';
-            }, 3000);
+        function formatDate(timestamp) {
+            const date = new Date(timestamp * 1000);
+            return date.toLocaleString('tr-TR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
         }
 
         function getWeather() {
@@ -86,31 +140,23 @@
             const city = cityInput.value.trim();
             
             if (!city) {
-                showError('Lütfen bir şehir adı giriniz.');
+                alert('Lütfen bir şehir adı giriniz.');
                 return;
             }
 
-            // API çağrısını HTTPS üzerinden yapalım ve Türkçe karakter sorununu çözelim
             fetch(`https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric&lang=tr`)
                 .then(response => {
                     if (!response.ok) {
-                        if (response.status === 401) {
-                            throw new Error('API anahtarı hatası. Lütfen daha sonra tekrar deneyiniz.');
-                        }
-                        if (response.status === 404) {
-                            throw new Error('Şehir bulunamadı. Lütfen geçerli bir şehir adı giriniz.');
-                        }
-                        throw new Error('Hava durumu bilgisi alınamadı. Lütfen tekrar deneyiniz.');
+                        throw new Error('Şehir bulunamadı');
                     }
                     return response.json();
                 })
                 .then(data => {
                     displayWeather(data);
-                    addToHistory(city);
+                    addToHistory(data);
                 })
                 .catch(error => {
-                    showError(error.message);
-                    console.error('API Error:', error);
+                    alert(error.message);
                 });
         }
 
@@ -120,29 +166,51 @@
             const feelsLike = Math.round(data.main.feels_like);
             
             weatherInfo.innerHTML = `
-                <h2 class="text-center">${data.name}</h2>
-                <div class="text-center">
-                    <img src="https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png" alt="Weather icon">
-                    <h3>${temperature}°C</h3>
-                    <p>Hissedilen: ${feelsLike}°C</p>
-                    <p>${data.weather[0].description}</p>
-                    <p>Nem: ${data.main.humidity}%</p>
-                    <p>Rüzgar: ${data.wind.speed} m/s</p>
+                <div class="d-flex align-items-start">
+                    <div class="location-info">
+                        <h4>
+                            <i class="bi bi-geo-alt location-icon"></i>
+                            ${data.name.toLowerCase()}
+                        </h4>
+                        <div class="weather-info">
+                            <img src="https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png" alt="Weather icon" style="width: 50px;">
+                            <span class="temperature">${temperature}°C</span>
+                        </div>
+                        <div class="text-muted">Hissedilen: ${feelsLike}°C</div>
+                    </div>
+                    <div class="ms-auto weather-details">
+                        <div class="detail-item">
+                            <i class="bi bi-cloud"></i> ${data.weather[0].description}
+                        </div>
+                        <div class="detail-item">
+                            <i class="bi bi-droplet"></i> Nem: ${data.main.humidity}%
+                        </div>
+                        <div class="detail-item">
+                            <i class="bi bi-wind"></i> Rüzgar Hızı: ${data.wind.speed} m/s
+                        </div>
+                        <div class="last-update">
+                            Son güncelleme: ${formatDate(data.dt)}
+                        </div>
+                    </div>
                 </div>
             `;
             weatherInfo.style.display = 'block';
         }
 
-        function addToHistory(city) {
+        function addToHistory(data) {
             let history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+            const newEntry = {
+                name: data.name,
+                temp: Math.round(data.main.temp),
+                description: data.weather[0].description,
+                humidity: data.main.humidity,
+                windSpeed: data.wind.speed,
+                icon: data.weather[0].icon,
+                timestamp: data.dt
+            };
             
-            // Remove the city if it already exists
-            history = history.filter(item => item.toLowerCase() !== city.toLowerCase());
-            
-            // Add the new city at the beginning
-            history.unshift(city);
-            
-            // Keep only the last MAX_HISTORY items
+            history = history.filter(item => item.name.toLowerCase() !== data.name.toLowerCase());
+            history.unshift(newEntry);
             history = history.slice(0, MAX_HISTORY);
             
             localStorage.setItem('searchHistory', JSON.stringify(history));
@@ -153,13 +221,34 @@
             const historyElement = document.getElementById('searchHistory');
             const history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
             
-            historyElement.innerHTML = history.map(city => `
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    ${city}
-                    <button class="btn btn-sm btn-primary" onclick="searchHistoryItem('${city}')">
+            historyElement.innerHTML = history.map(item => `
+                <div class="history-card">
+                    <div class="d-flex align-items-center">
+                        <div>
+                            <h5>
+                                <i class="bi bi-geo-alt location-icon"></i>
+                                ${item.name.toLowerCase()}
+                            </h5>
+                            <div class="weather-info">
+                                <img src="https://openweathermap.org/img/wn/${item.icon}@2x.png" alt="Weather icon" style="width: 40px;">
+                                <span class="temperature">${item.temp}°C</span>
+                            </div>
+                            <div class="text-muted">
+                                ${item.description}
+                            </div>
+                            <div class="detail-item">
+                                <i class="bi bi-droplet"></i> Nem: ${item.humidity}%
+                                <i class="bi bi-wind ms-2"></i> Rüzgar Hızı: ${item.windSpeed} m/s
+                            </div>
+                            <div class="last-update">
+                                Arama zamanı: ${formatDate(item.timestamp)}
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="searchHistoryItem('${item.name}')">
                         <i class="bi bi-search"></i>
                     </button>
-                </li>
+                </div>
             `).join('');
         }
 
