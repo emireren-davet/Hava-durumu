@@ -36,12 +36,14 @@
         <h1 class="text-center mb-4">HAVA DURUMU</h1>
         
         <div class="search-box">
-            <div class="input-group">
-                <input type="text" id="cityInput" class="form-control" placeholder="Şehir adı giriniz...">
-                <button class="btn btn-primary" type="button" onclick="getWeather()">
-                    <i class="bi bi-search"></i> Ara
-                </button>
-            </div>
+            <form onsubmit="getWeather(); return false;">
+                <div class="input-group">
+                    <input type="text" id="cityInput" class="form-control" placeholder="Şehir adı giriniz...">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="bi bi-search"></i> Ara
+                    </button>
+                </div>
+            </form>
         </div>
 
         <div id="weatherInfo" class="weather-card" style="display: none;">
@@ -69,10 +71,14 @@
                 return;
             }
 
-            fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${API_KEY}&units=metric&lang=tr`)
+            // API çağrısını HTTPS üzerinden yapalım ve Türkçe karakter sorununu çözelim
+            fetch(`https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric&lang=tr`)
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error('Şehir bulunamadı');
+                        if (response.status === 404) {
+                            throw new Error('Şehir bulunamadı. Lütfen geçerli bir şehir adı giriniz.');
+                        }
+                        throw new Error('Hava durumu bilgisi alınamadı. Lütfen tekrar deneyiniz.');
                     }
                     return response.json();
                 })
