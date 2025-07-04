@@ -57,7 +57,7 @@
     </div>
 
     <script>
-        const API_KEY = '1dd1020b491954c312d2f99feda6a97f';
+        const API_KEY = '5abec0ec82d9ebef56322dcdf2a2f825';
         const MAX_HISTORY = 3;
 
         function getWeather() {
@@ -138,6 +138,13 @@
             document.getElementById('cityInput').value = city;
             getWeather();
         }
+
+        // Enter tuşu desteği
+        document.getElementById('cityInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                getWeather();
+            }
+        });
 
         // Load search history when the page loads
         window.onload = displayHistory;
