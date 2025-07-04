@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ site_name }} - Hava Durumu</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .weather-card {
+            margin-bottom: 20px;
+            transition: transform 0.2s;
+            position: relative;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background-color: white;
+        }
+        .weather-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        .delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1;
+            opacity: 0.8;
+        }
+        .delete-btn:hover {
+            opacity: 1;
+        }
+        .current-weather {
+            border: 2px solid #007bff;
+            background-color: #f8f9ff;
+        }
+        .search-form {
+            background-color: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        .weather-icon {
+            width: 64px;
+            height: 64px;
+        }
+        .temperature {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .feels-like {
+            font-size: 1.1rem;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">{{ site_name }}</h1>
+        
+        <div class="search-form">
+            <form method="POST" class="mb-0" id="weatherForm">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" name="city" class="form-control" placeholder="Şehir adı giriniz..." required>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-cloud-sun me-2"></i>Hava Durumunu Göster
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        {% if error %}
+        <div class="alert alert-danger" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
+        </div>
+        {% endif %}
+
+        {% if weather %}
+        <div class="card weather-card current-weather mb-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h2 class="card-title mb-3">
+                            <i class="bi bi-geo-alt me-2"></i>{{ weather.city }}
+                        </h2>
+                        <div class="d-flex align-items-center mb-3">
+                            <img src="https://openweathermap.org/img/w/{{ weather.icon }}.png" 
+                                 alt="Hava durumu ikonu" 
+                                 class="weather-icon me-3">
+                            <div>
+                                <div class="temperature">{{ weather.temperature }}°C</div>
+                                <div class="feels-like">Hissedilen: {{ weather.feels_like }}°C</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="card-text"><i class="bi bi-cloud me-2"></i>{{ weather.description }}</p>
+                        <p class="card-text"><i class="bi bi-droplet me-2"></i>Nem: {{ weather.humidity }}%</p>
+                        <p class="card-text"><i class="bi bi-wind me-2"></i>Rüzgar Hızı: {{ weather.wind_speed }} m/s</p>
+                        <p class="card-text">
+                            <small class="text-muted">
+                                <i class="bi bi-clock me-2"></i>Son güncelleme: {{ weather.datetime }}
+                            </small>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <h3 class="mt-4 mb-3"><i class="bi bi-clock-history me-2"></i>Son Aramalar</h3>
+        <div class="row" id="searchHistory"></div>
+    </div>
+
+    <script>
+        // Local Storage'dan son aramaları al
+        function getSearchHistory() {
+            const history = localStorage.getItem('weatherSearchHistory');
+            return history ? JSON.parse(history) : [];
+        }
+
+        // Local Storage'a yeni arama ekle
+        function addToSearchHistory(weatherData) {
+            if (!weatherData || !weatherData.city || weatherData.city.trim() === '') {
+                return;
+            }
+
+            let history = getSearchHistory();
+            
+            const existingIndex = history.findIndex(item => item.city.toLowerCase() === weatherData.city.toLowerCase());
+            if (existingIndex !== -1) {
+                history.splice(existingIndex, 1);
+            }
+            
+            weatherData.timestamp = new Date().getTime();
+            history.unshift(weatherData);
+            
+            if (history.length > 3) {
+                history = history.slice(0, 3);
+            }
+            
+            history.sort((a, b) => b.timestamp - a.timestamp);
+            
+            localStorage.setItem('weatherSearchHistory', JSON.stringify(history));
+            displaySearchHistory();
+        }
+
+        // Arama geçmişini görüntüle
+        function displaySearchHistory() {
+            const history = getSearchHistory();
+            const container = document.getElementById('searchHistory');
+            container.innerHTML = '';
+
+            history.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'col-md-4';
+                card.innerHTML = `
+                    <div class="card weather-card">
+                        <button class="btn btn-danger btn-sm delete-btn" onclick="removeFromHistory(${index})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="bi bi-geo-alt me-2"></i>${item.city}
+                            </h5>
+                            <div class="d-flex align-items-center mb-3">
+                                <img src="https://openweathermap.org/img/w/${item.icon}.png" 
+                                     alt="Hava durumu ikonu" 
+                                     class="weather-icon me-2">
+                                <div class="temperature">${item.temperature}°C</div>
+                            </div>
+                            <p class="card-text"><i class="bi bi-cloud me-2"></i>${item.description}</p>
+                            <p class="card-text"><i class="bi bi-droplet me-2"></i>Nem: ${item.humidity}%</p>
+                            <p class="card-text"><i class="bi bi-wind me-2"></i>Rüzgar Hızı: ${item.wind_speed} m/s</p>
+                            <p class="card-text">
+                                <small class="text-muted">
+                                    <i class="bi bi-clock me-2"></i>Arama zamanı: ${item.datetime}
+                                </small>
+                            </p>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+
+        // Arama geçmişinden sil
+        function removeFromHistory(index) {
+            let history = getSearchHistory();
+            if (index >= 0 && index < history.length) {
+                history.splice(index, 1);
+                localStorage.setItem('weatherSearchHistory', JSON.stringify(history));
+                displaySearchHistory();
+            }
+        }
+
+        // Sayfa yüklendiğinde geçmişi göster
+        document.addEventListener('DOMContentLoaded', displaySearchHistory);
+
+        // Yeni arama yapıldığında geçmişe ekle
+        {% if weather and not error %}
+        const currentWeather = {
+            city: "{{ weather.city }}",
+            temperature: "{{ weather.temperature }}",
+            description: "{{ weather.description }}",
+            humidity: "{{ weather.humidity }}",
+            wind_speed: "{{ weather.wind_speed }}",
+            icon: "{{ weather.icon }}",
+            datetime: "{{ weather.datetime }}"
+        };
+        addToSearchHistory(currentWeather);
+        {% endif %}
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
