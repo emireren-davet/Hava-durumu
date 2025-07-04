@@ -27,15 +27,41 @@
             margin-bottom: 20px;
         }
         .weather-card {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             margin-bottom: 20px;
+            transition: transform 0.2s;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            background-color: white;
+        }
+        .weather-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        .delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1;
+            opacity: 0.8;
+        }
+        .delete-btn:hover {
+            opacity: 1;
+        }
+        .current-weather {
+            border: 2px solid #007bff;
+            background-color: #f8f9ff;
+        }
+        .search-form {
+            background-color: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
         }
         .weather-icon {
-            font-size: 24px;
-            margin-right: 10px;
+            width: 64px;
+            height: 64px;
         }
         .temperature {
             font-size: 48px;
@@ -87,35 +113,31 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="container py-5">
         <h1 class="text-center mb-4">HAVA DURUMU</h1>
         
-        <div class="search-container">
-            <form onsubmit="getWeather(); return false;" class="d-flex">
-                <div class="input-group">
-                    <span class="input-group-text">
-                        <i class="bi bi-search"></i>
-                    </span>
-                    <input type="text" id="cityInput" class="form-control" placeholder="Şehir adı giriniz...">
-                    <button class="btn btn-primary" type="submit">
-                        Hava Durumunu Göster
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <div id="weatherInfo" class="weather-card" style="display: none;">
-            <!-- Weather information will be displayed here -->
-        </div>
-
-        <div class="mt-4">
-            <h5 class="mb-3">
-                <i class="bi bi-clock-history"></i>
-                Son Aramalar
-            </h5>
-            <div id="searchHistory">
-                <!-- Search history will be displayed here -->
+        <div class="search-form">
+            <div class="input-group">
+                <span class="input-group-text">
+                    <i class="bi bi-search"></i>
+                </span>
+                <input type="text" id="cityInput" class="form-control" placeholder="Şehir adı giriniz...">
+                <button class="btn btn-primary" onclick="getWeather()">
+                    Hava Durumunu Göster
+                </button>
             </div>
+        </div>
+
+        <div id="weatherInfo" class="weather-card current-weather" style="display: none;">
+            <!-- Current weather information will be displayed here -->
+        </div>
+
+        <h5 class="mb-3">
+            <i class="bi bi-clock-history"></i>
+            Son Aramalar
+        </h5>
+        <div id="searchHistory">
+            <!-- Search history will be displayed here -->
         </div>
     </div>
 
@@ -167,29 +189,26 @@
             
             weatherInfo.innerHTML = `
                 <div class="d-flex align-items-start">
-                    <div class="location-info">
+                    <div>
                         <h4>
                             <i class="bi bi-geo-alt location-icon"></i>
                             ${data.name.toLowerCase()}
                         </h4>
-                        <div class="weather-info">
-                            <img src="https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png" alt="Weather icon" style="width: 50px;">
+                        <div class="d-flex align-items-center">
+                            <img src="https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png" alt="Weather icon" class="weather-icon">
                             <span class="temperature">${temperature}°C</span>
                         </div>
                         <div class="text-muted">Hissedilen: ${feelsLike}°C</div>
                     </div>
-                    <div class="ms-auto weather-details">
-                        <div class="detail-item">
+                    <div class="ms-auto">
+                        <div class="mb-2">
                             <i class="bi bi-cloud"></i> ${data.weather[0].description}
                         </div>
-                        <div class="detail-item">
+                        <div class="mb-2">
                             <i class="bi bi-droplet"></i> Nem: ${data.main.humidity}%
                         </div>
-                        <div class="detail-item">
+                        <div>
                             <i class="bi bi-wind"></i> Rüzgar Hızı: ${data.wind.speed} m/s
-                        </div>
-                        <div class="last-update">
-                            Son güncelleme: ${formatDate(data.dt)}
                         </div>
                     </div>
                 </div>
@@ -206,7 +225,7 @@
                 humidity: data.main.humidity,
                 windSpeed: data.wind.speed,
                 icon: data.weather[0].icon,
-                timestamp: data.dt
+                timestamp: new Date().toLocaleString('tr-TR')
             };
             
             history = history.filter(item => item.name.toLowerCase() !== data.name.toLowerCase());
@@ -222,40 +241,51 @@
             const history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
             
             historyElement.innerHTML = history.map(item => `
-                <div class="history-card">
-                    <div class="d-flex align-items-center">
+                <div class="weather-card position-relative">
+                    <button class="btn btn-danger btn-sm delete-btn" onclick="removeFromHistory('${item.name}')">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                    <div class="d-flex align-items-start">
                         <div>
-                            <h5>
+                            <h4>
                                 <i class="bi bi-geo-alt location-icon"></i>
                                 ${item.name.toLowerCase()}
-                            </h5>
-                            <div class="weather-info">
-                                <img src="https://openweathermap.org/img/wn/${item.icon}@2x.png" alt="Weather icon" style="width: 40px;">
+                            </h4>
+                            <div class="d-flex align-items-center">
+                                <img src="https://openweathermap.org/img/wn/${item.icon}@2x.png" alt="Weather icon" class="weather-icon">
                                 <span class="temperature">${item.temp}°C</span>
                             </div>
-                            <div class="text-muted">
-                                ${item.description}
-                            </div>
-                            <div class="detail-item">
+                            <div class="text-muted">${item.description}</div>
+                        </div>
+                        <div class="ms-auto">
+                            <div class="mb-2">
                                 <i class="bi bi-droplet"></i> Nem: ${item.humidity}%
-                                <i class="bi bi-wind ms-2"></i> Rüzgar Hızı: ${item.windSpeed} m/s
                             </div>
-                            <div class="last-update">
-                                Arama zamanı: ${formatDate(item.timestamp)}
+                            <div class="mb-2">
+                                <i class="bi bi-wind"></i> Rüzgar Hızı: ${item.windSpeed} m/s
+                            </div>
+                            <div class="text-muted small">
+                                <i class="bi bi-clock"></i> ${item.timestamp}
                             </div>
                         </div>
                     </div>
-                    <button class="btn btn-primary" onclick="searchHistoryItem('${item.name}')">
-                        <i class="bi bi-search"></i>
-                    </button>
                 </div>
             `).join('');
         }
 
-        function searchHistoryItem(city) {
-            document.getElementById('cityInput').value = city;
-            getWeather();
+        function removeFromHistory(cityName) {
+            let history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+            history = history.filter(item => item.name.toLowerCase() !== cityName.toLowerCase());
+            localStorage.setItem('searchHistory', JSON.stringify(history));
+            displayHistory();
         }
+
+        // Enter tuşu desteği
+        document.getElementById('cityInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                getWeather();
+            }
+        });
 
         // Load search history when the page loads
         window.onload = displayHistory;
